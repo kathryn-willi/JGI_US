@@ -1,0 +1,180 @@
+---
+title: "1 JGI Summary and Timeline"
+author: "Matthew Ross"
+date: "8/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(sf)
+library(tidyverse)
+library(terra)
+library(stars)
+library(nhdplusTools)
+library(mapview)
+library(elevatr)
+library(s2)
+
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Intro
+
+This document is meant to do two things: First deliver on the wishlist of 
+Kayla/Kelly for the initial US-focused river microbiome project.
+Second, where such delivery is impossible/will take too long, 
+I provide guidance on a timeline. The sub headers are directly from the wish list.
+I'm using a random subsample of 4 sites so the analyses are easier to visualize,
+but the functions will be used to rerun the data for all sites. 
+
+
+
+## River HUC Matching and Site Distributions
+
+### Data read in and finding the NHD flowline
+
+Really helpful to have this [guide](https://s3.amazonaws.com/edap-nhdplus/NHDPlusV21/Documentation/NHDPlusV2_User_Guide.pdf) on hand (ctrl+f for column names)
+US river data is organized by hydrologic unit codes (watersheds) and by National Hydrography Dataset (waterbodies)
+NHD Plus tools allows for easy interaction with these datasets.
+
+
+```{r}
+# Subset to CONUS
+usa <- USAboundaries::us_states() %>%
+  filter(!state_abbr %in% c('PR','AK','HI'))
+
+jgi <- read_csv('data/JGI_UnitedStatesSummary.csv') |>
+  #Keep only distinct lat longs
+  distinct(Lat,Long, .keep_all= T) |>
+  # Convert to spatial object
+  st_as_sf(coords = c('Long','Lat'), crs = 4326,remove = F) %>%
+  mutate(comid = 1) %>%
+  .[usa,]
+
+## Get the comid for each site. (hydrography name)
+
+mapview(jgi)
+```
+
+
+## Get NHD contextual data
+
+### Comid
+
+COMID is from NHD plus and it's a unique identifier for every waterbody
+in the US. 
+
+```{r, eval = F}
+for(i in 1:nrow(jgi)){
+  jgi$comid[i] <- discover_nhdplus_id(jgi[i,])
+  
+}
+
+
+st_write(jgi,'data/jgi_comid.gpkg')
+```
+
+
+### Grab nearest NHD feature
+
+This will give us some key information directly from NHD from the nearest
+NHD feature and it can be quickly done for all sites. 
+
+
+
+```{r, eval = F}
+
+jgi <- st_read('data/jgi_comid.gpkg')
+
+
+
+subset_nhdplus(comids = jgi$comid,
+               output_file = 'data/all_lines.gpkg',
+               nhdplus_data = 'download',
+               overwrite = T,
+               return_data = F,
+               flowline_only = T,
+               out_prj = 4326)
+  
+
+
+```
+
+
+
+## NHD Characteristics
+
+### Watershed area
+
+This is the full watershed area
+
+```{r}
+
+jgi_lines <- st_read('data/all_lines.gpkg')
+
+theme_set(ggthemes::theme_few())
+
+ggplot(jgi_lines, aes(x = totdasqkm)) + 
+  geom_histogram(bins = 10, color = 'lightgray') + 
+  scale_x_log10() + 
+  xlab('Area (km2)')
+
+```
+
+### Dendritic network length
+
+Called arboletum sum. 
+
+```{r}
+
+ggplot(jgi_lines, aes(x = arbolatesu)) + 
+  geom_histogram(bins = 10, color = 'lightgray') + 
+  scale_x_log10() + 
+  xlab('Network distance (km)')
+
+
+```
+
+
+### Watershed area vs network length
+
+```{r}
+ggplot(jgi_lines, aes(x = totdasqkm, y = arbolatesu)) + 
+  geom_point() + 
+  scale_x_log10() + 
+  scale_y_log10() + 
+  ylab('Network distance (km)') +
+  xlab('Area (km2)')
+
+```
+
+
+### HUC 12s 
+
+```{r, eval = F}
+
+hucs <- list()
+for(i in 1:nrow(jgi)){
+  hucs[[i]] <- get_huc12(jgi[i,])
+}
+
+full_huc <- do.call('rbind',hucs)
+
+st_write(full_huc,'data/jgi_hucs.gpkg')
+
+
+```
+
+
+### Sites colored by huc4
+
+```{r}
+jgi
+
+
+
+```
+
