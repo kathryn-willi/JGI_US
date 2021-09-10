@@ -2,7 +2,11 @@
 title: "1 JGI Summary and Timeline"
 author: "Matthew Ross"
 date: "8/17/2021"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
 ---
 
 ```{r setup, include=FALSE}
@@ -17,7 +21,7 @@ library(elevatr)
 library(s2)
 
 
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = F, comment = F, message = F)
 ```
 
 
@@ -26,11 +30,120 @@ knitr::opts_chunk$set(echo = TRUE)
 This document is meant to do two things: First deliver on the wishlist of 
 Kayla/Kelly for the initial US-focused river microbiome project.
 Second, where such delivery is impossible/will take too long, 
-I provide guidance on a timeline. The sub headers are directly from the wish list.
-I'm using a random subsample of 4 sites so the analyses are easier to visualize,
-but the functions will be used to rerun the data for all sites. 
+I provide guidance on a timeline. But first I want to directly address and break 
+apart some of the desired list. 
+
+Some baseline thoughts for this analysis coming from my background. 
+
+## Temporal vs Spatial Variation
+
+Many of the variables we are pulling for you are inherently about spatial variation
+more than temporal variation. While there is some cool new work showing that
+spatial variation is a major control on river ecosystem function, the vast majority
+of literature on river function focuses on temporal variability at a site or a 
+series of linked sites. So one of the fears I have going into this, will the 
+local temporal variability swamp the spatial controls? I think it is highly likely
+that whether or not the river had a recent flood, high turbidity event, or other
+info will be more important than dendritic network length etc... The paper you sent
+works in this way because it's all the same basin and sampled on the same day. 
+
+Because of this, we haven't calculated distances between sites and some of the other
+variables you requested, because I (Matt) don't think it makes sense at this much larger
+scale we are working at. Within a specific basin or project this is a great idea
+but we need to identify these networks a priori and it will almost certainly be
+a different kind of paper than this broad continental scale context. 
+
+## Datasets that already exist
+
+A ton of what you want has already been done by the EPA or USGS, which is awesome!
+However, it does mean that for this work to be readily understood you need to 
+have a good understanding of the NHD_Plus dataset (at least the metadata) and
+the StreamCAT data. NHD_Plus data will have all of the physical data you requested
+like watershed size, dendritic length, stream slope, average Q, etc...
+
+[NHD Plus User Guide](https://s3.amazonaws.com/edap-nhdplus/NHDPlusV21/Documentation/NHDPlusV2_User_Guide.pdf)
+
+StreamCAT is an incredible huge effort by the EPA to bring even more detailed 
+info into NHD, basically each river chunk in streamcat has full landuse land cover
+data and literally hundreds of other obscure variables (% sand bedrock upstream). 
+I don't go into details here, but I do pull streamcat for the river sections of 
+the observations. 
+
+[StreamCAT](https://www.epa.gov/national-aquatic-resource-surveys/streamcat-dataset-0)
+
+## What we all want. 
+
+My responses in **bold**
+
+1.  Assignment of our sites to river basins- we would like to be able to put our sites into watershed basins like the figure below. Along these same lines, we would like to know the subsets of samples that belong to main stem or tributaries. We want to be able to test some of the length of stream hypotheses. Once we have this, I think we would like to calculate the distances within basin in #2 below. Similarly, can we categorize sites by HUC levels – essentially we want to be able to ‘bin’ sites so that we can compare microbial communities spatially based on hydrology instead of just spatial differences (e.g. lat/long), e.g. basin scale, river scale. Is there another way to do this beyond HUC that may be better?
+
+**Yes, this is done... I think. Hydrologic Unit Codes are nested basins, the 
+map you showed is at the HUC2 level, the broadest possible code and therefore the 
+largest nest. Here we have the huc12 units for all sites, this is hyperlocal 
+watershed and not exactly what you want, but you can trim the HUC12 code to get
+huc10, 8 etc... "150301070107" is a huc12 code and "1503" is its HUC4 code!
+
+2. A. the dendritic network length (km), which is a measure of the cumulative length of the branching river network upstream of the sampling site, (2) the Euclidian distance (km) between sites, which is simply the straight line distance between sampling points and (3) the drainage catchment area (km2) for each site. These ideas originate from this paper “Catchment-scale biogeography of riverine bacterioplankton” in ISME. If you have a few minutes to discuss I think you could do this between all sites but also between sites within a basin- but let me know your thoughts.
 
 
+**See above, I think these metrics are a problematic comparision to that paper 
+which had simultaneous sampling in the same basin. If you have similar simultaneous
+samples in the same basin over a Thames style scale then we can add this in for
+specific sub efforts, but it doesn't work across basins/regions**
+
+3. Land coverage data – including aridity (very cool data you had in the microbiome update link), biome, vegetation type, NDVI, NEP, GPP.
+
+** Most of these variables that are more static we do have from StreamCAT, but
+pulling NDVI, NEP, GPP would be hard/impossibe as watershed averages. Locally
+we can copy some of Phil Savoy's code for GPP from MODIS, but this will take a 
+bit of time (End of Sept).**
+
+4. Disturbances- can we pull disturbances and distance from those disturbances (e.g. agriculture, dams, wildfire, urbanization, intermittency)
+
+** I wish! I am actively working on a fire and mining script that aggregates 
+disturbance per year in a stream network, but this doesn't exist except for
+what is in StreamCat (landuse2006), which is not really what you want. This
+is at earliest available in December of this year**
+
+**BIG UPDATE: StreamCAT has most of these things now, working on adding**
+
+
+5. Respiration
+
+** Yes, will pull any sites near StreamPULSE sites**
+[StreamPULSE](https://data.streampulse.org/)
+
+6. Other climate variables- precip
+
+**See major note below**
+    
+7. Tidal influence
+
+**Yes comes with NHD**
+
+8. Watershed area and channel slope
+
+*Yes comes with NHD**
+
+9. Gauge/sensor data- what data can we pull for these from all sites or a majority of site, I think many are gauged. Parameters directly or indirectly used to estimate water column NEP and related, like CO2 concentration. Turbidity. Chlorophyll. pH. Other water quality data?
+
+**See major note below**
+    
+10. Discharge/ estimates of river stage fluctuation
+
+**See major note below**
+
+**NOTE: All temporally varying parameters (water quality, dischrage, sensors, etc...)
+we need to discuss in more detail what we want here. Data for all time (probably not),
+data for the month before and after the sample? A year? Same day? 
+
+
+The data extraction code below will not match up directly with these data 
+categories, but the data output should bring all the data I describe above. 
+Hopefully sharing this code will make it easier to adjust in the future. 
+
+
+# Methods (data extraaction and exploration)
 
 ## River HUC Matching and Site Distributions
 
@@ -87,7 +200,7 @@ NHD feature and it can be quickly done for all sites.
 
 ```{r, eval = F}
 
-jgi <- st_read('data/jgi_comid.gpkg')
+jgi <- st_read('data/jgi_comid.gpkg', quiet = T)
 
 
 
@@ -113,7 +226,7 @@ This is the full watershed area
 
 ```{r}
 
-jgi_lines <- st_read('data/all_lines.gpkg')
+jgi_lines <- st_read('data/all_lines.gpkg', quiet = T)
 
 theme_set(ggthemes::theme_few())
 
@@ -172,9 +285,197 @@ st_write(full_huc,'data/jgi_hucs.gpkg')
 ### Sites colored by huc4
 
 ```{r}
-jgi
+jgi_hucs <- st_read('data/jgi_hucs.gpkg', quiet = T) %>%
+  mutate(huc4 = str_sub(huc12,end = 4))
 
 
+
+jgi_h12 <- st_join(jgi,jgi_hucs)
+
+mapview(jgi_h12, zcol = 'huc4',
+        legend = F)
 
 ```
+
+## StreamCAT extraction
+
+Code adapted from Simon Topps LakeCat extraction
+[LakeCat](https://github.com/SimonTopp/USLakeClarityTrendr/blob/master/1_nhd_join_and_munge.Rmd).
+
+StreamCAT is huge (600 possible variables). And While EPA is making a
+super cool api (StreamCATTools) to programatically interact with streamcat, which
+would make this code 1 billion times faster, that stuff ain't public yet. So!
+
+I made a function below that:
+
+1) Downloads a category of data (e.g. dam density, urbanization) for all regions of CONUS
+2) Joins that data too our jgi_lines (NHD flowlines)
+3) Then, hilariously, deletes the large gigabytes of data we don't use and only
+keeps that one info.
+
+The only way to get these names right is to look at the file structure
+of [StreamCat](https://gaftp.epa.gov/epadatacommons/ORD/NHDPlusLandscapeAttributes/StreamCat/HydroRegions/)
+This crashes my firefox and must be opened in a chromium browser (Chrome, Edge, etc...)
+
+### V
+
+```{r}
+
+```
+
+```{r, eval = F}
+
+
+hackastreamcat <- function(name = 'Dams'){
+  base_url = 'https://gaftp.epa.gov/epadatacommons/ORD/NHDPlusLandscapeAttributes/StreamCat/HydroRegions/'
+  ## Manual because they split up the huc2s. Ugh
+  regions = str_pad(c(1:2,4:9,11:18), 2, pad = '0') %>%
+    c('03N','03S','03W','10U','10L') %>%
+    sort(.)
+  urls = paste0(base_url,name,'_Region',regions,'.zip')
+  folder = paste0('data/temp/',name)
+  files = paste0(folder,'/',regions,'.zip')
+  
+  csvs = paste0(folder,'/',name,'_Region',regions,'.csv')
+  
+  
+  
+  if(!file.exists(folder)){
+    dir.create(folder)
+  }
+  
+  
+  
+  for(i in 1:length(urls)){
+    if(!file.exists(csvs[i])){
+      download.file(url = urls[i],
+                    destfile = files[i])
+      unzip(zipfile = files[i], exdir = folder)
+      }
+  }
+  
+}
+
+#Variables of interest
+#REminder this approach is stupidly wasteful. I am very excited for the API
+# Also reminder, Can pull every category as a riparian buffer dataset. Ask
+# Team if this is desirable. 
+
+
+
+walk(voi, hackastreamcat)
+
+```
+
+
+## StreamCAT Joining to Lines
+
+We want our NHD flowlines to have all the data from streamcat (that we care about).
+This code
+
+```{r, eval = F}
+library(data.table)
+kitten_folders <- list.files('data/temp', full.names = T)
+simple_folders <- list.files('data/temp', full.names = F)
+
+
+stream_kittens <- function(cat_file){
+  temp_list <- list()
+  for(i in 1:length(cat_file[[1]])){
+    scat <- data.table::fread(cat_file[[1]][i])
+    keep_cat <- scat[COMID %in% jgi_lines$comid,]
+    temp_list[[i]] <- keep_cat
+  }
+  out <- do.call('rbind', temp_list)
+  return(out)
+}
+
+
+
+
+stream_kitten <- function(cat_file){
+    catcher <- function(file_name){
+      data.table::fread(file_name) %>%
+        .[COMID %in% jgi_lines$comid,]
+    }
+    
+    scat <- map_dfr(cat_file, catcher)
+}
+
+# This is impressively fast. It reads over 2.65 million records 20 times!
+# All in 16 seconds!
+warren <- tibble(kitten_folders, simple_folders) %>%
+  mutate(cat_files = map(kitten_folders, list.files, full.names = T, 
+                     pattern = '.csv'),
+         overlaps = map(cat_files,stream_kitten))
+
+# Glorious reduce function to join all variables together
+wide_af <- reduce(warren$overlaps, inner_join, by = 'COMID') %>%
+  select(-starts_with(c('CatAreaSqKm.','WsPctFull.','CatPctFull.','WsAreaSqKm.'))) %>%
+  rename(comid = COMID)
+  
+
+#Bring the party to NHD
+jgi_mega_wide <- inner_join(jgi_lines, wide_af)
+
+st_write(jgi_mega_wide, 'data/nhd_stream_cat.gpkg')
+
+```
+
+
+## Final Data Join
+
+Was hoping to visualize some of this data, but it is so vast and intimidating!
+
+I will send you this final dataset instead, it has more than 350 columns!
+
+
+```{r, eval = F}
+jgi_mega_wide <- st_read('data/nhd_stream_cat.gpkg', quiet = T)
+
+jgi_full_context <- inner_join(as.data.frame(jgi) %>%
+                                 select(-geom),as.data.frame(jgi_mega_wide))
+
+full_jgi <- read_csv('data/JGI_UnitedStatesSummary.csv') %>%
+  left_join(jgi_full_context, by = c('Lat','Long'))
+
+
+write_csv(full_jgi, 'data/final_jgi_summary.csv')
+```
+
+
+## Rich data context
+
+These are networks of sites where we have oodles of data. 
+
+```{r}
+
+camels <- read_delim('data/camels_topo.txt', delim = ';') %>%
+  mutate(network = 'CAMELS_USGS') %>%
+  st_as_sf(.,coords = c('gauge_lon','gauge_lat'), crs = 4326) %>%
+  select(network, site_code = gauge_id )
+  
+
+macrosheds <- read_csv('data/macrosheds_sitedata.csv') %>%
+  filter(!is.na(longitude),
+         !is.na(latitude),
+         network != 'walker_branch',
+         network != 'usgs') %>%
+  filter(site_type == 'stream_gauge') %>%
+  st_as_sf(., coords = c('longitude','latitude'), crs = 4326) %>%
+  .[usa,] %>%
+  select(network, site_code)
+
+
+macro_camel <- rbind(camels, macrosheds)
+
+
+mapview(macro_camel, zcol = 'network') + 
+  mapview(jgi, color = 'red') 
+```
+
+
+# Questions
+
+- I wrote most of them upstream. But we can keep track here. 
 
