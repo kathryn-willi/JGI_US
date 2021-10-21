@@ -156,8 +156,11 @@ NHD Plus tools allows for easy interaction with these datasets.
 
 ```{r}
 # Subset to CONUS
-usa <- USAboundaries::us_states() %>%
-  filter(!state_abbr %in% c('PR','AK','HI'))
+# usa <- USAboundaries::us_states() %>%
+#   filter(!state_abbr %in% c('PR','AK','HI'))
+
+catchment <- st_read('data/catchment_extent.shp') %>%
+  st_transform(crs=4326)
 
 jgi <- read_csv('data/JGI_UnitedStatesSummary.csv') |>
   #Keep only distinct lat longs
@@ -165,11 +168,12 @@ jgi <- read_csv('data/JGI_UnitedStatesSummary.csv') |>
   # Convert to spatial object
   st_as_sf(coords = c('Long','Lat'), crs = 4326,remove = F) %>%
   mutate(comid = 1) %>%
-  .[usa,]
+  #.[usa,]
+  .[catchment,]
 
 ## Get the comid for each site. (hydrography name)
 
-mapview(jgi)
+mapview(jgi) 
 ```
 
 
